@@ -524,7 +524,7 @@ export async function openNewGroup(
   groupName: string,
   urls: Array<string | undefined>,
   { discard = false, asGroup = true }: { discard?: boolean; asGroup?: boolean },
-) {
+): Promise<{ bsGroupId?: number; windowId?: number }> {
   const settings = await settingsUtils.getSettings();
 
   let _urls = urls.filter(url => !!url?.trim()) as string[];
@@ -541,39 +541,41 @@ export async function openNewGroup(
         }
       });
 
-    if (!isGroupSupported()) return;
-    if (!asGroup) return;
+    if (!isGroupSupported() || !asGroup) {
+      return { windowId: windowInfo.id };
+    }
 
     const bsGroupId = await browser.tabs.group!({
       createProperties: { windowId: windowInfo.id },
       tabIds: tabs.map(tab => tab.id!),
     });
     browser.tabGroups?.update(bsGroupId, { title: groupName });
+    return { bsGroupId, windowId: windowInfo.id };
   } else {
     _urls = settings[OPENING_TABS_ORDER] === 'reverse' ? [..._urls].reverse() : _urls;
     if (!isGroupSupported() || !asGroup) {
       for (let url of _urls) {
-        openNewTab(url, { discard });
+        await openNewTab(url, { discard });
       }
-      return;
+      return {};
     }
 
-    Promise.all(
+    const tabs = await Promise.all(
       _urls.map(url => {
         return browser.tabs.create({ url, active: false });
       }),
-    ).then(async tabs => {
-      const filteredTabs = tabs.filter(tab => !!tab.id);
-      filteredTabs.forEach(tab => {
-        if (discard && tab.id) {
-          waitToDiscard(tab);
-        }
-      });
-      const bsGroupId = await browser.tabs.group!({
-        tabIds: filteredTabs.map(tab => tab.id!),
-      });
-      browser.tabGroups?.update(bsGroupId, { title: groupName });
+    );
+    const filteredTabs = tabs.filter(tab => !!tab.id);
+    filteredTabs.forEach(tab => {
+      if (discard && tab.id) {
+        waitToDiscard(tab);
+      }
     });
+    const bsGroupId = await browser.tabs.group!({
+      tabIds: filteredTabs.map(tab => tab.id!),
+    });
+    browser.tabGroups?.update(bsGroupId, { title: groupName });
+    return { bsGroupId, windowId: filteredTabs[0]?.windowId };
   }
 }
 

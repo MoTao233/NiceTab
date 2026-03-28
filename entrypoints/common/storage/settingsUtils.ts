@@ -21,6 +21,10 @@ import {
 } from '../constants';
 import { defaultGroupActions } from '~/entrypoints/options/home/constants';
 
+const env = ((import.meta as ImportMeta & { env?: Record<string, unknown> }).env ||
+  {}) as Record<string, unknown>;
+const isFirefoxEnv = !!env.FIREFOX;
+
 const {
   LANGUAGE,
   THEME_TYPE,
@@ -103,8 +107,8 @@ export default class SettingsUtils {
     [SILENT_OPEN_TAB_MODIFIER_KEY]: 'alt', // 静默打开标签页的修饰键
     [OPEN_TAB_MODIFIER_KEY]: '', // 前台打开标签页的修饰键
     [OPENING_TABS_ORDER]: 'default' as OpeningTabsOrder, // 打开标签页的顺序
-    [UNNAMED_GROUP_RESTORE_AS_GROUP]: import.meta.env.FIREFOX ? false : true, // 是否以标签组形式恢复未命名标签组
-    [NAMED_GROUP_RESTORE_AS_GROUP]: import.meta.env.FIREFOX ? false : true, // 是否以标签组形式恢复已命名标签组
+    [UNNAMED_GROUP_RESTORE_AS_GROUP]: isFirefoxEnv ? false : true, // 是否以标签组形式恢复未命名标签组
+    [NAMED_GROUP_RESTORE_AS_GROUP]: isFirefoxEnv ? false : true, // 是否以标签组形式恢复已命名标签组
     /* 页面标题配置 */
     [PAGE_TITLE_CONFIG]: [], // 页面标题配置
     /* 全局搜索配置 */

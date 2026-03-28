@@ -1,10 +1,10 @@
-import SettingsUtils from './settingsUtils';
-import ThemeUtils from './themeUtils';
-import TabListUtils from './tabListUtils';
-import RecycleBinUtils from './recycleBinUtils';
-import SyncUtils from './syncUtils';
-import SyncWebDAVUtils from './syncWebDAVUtils';
-import StateUtils from './stateUtils';
+import type SettingsUtils from './settingsUtils';
+import type ThemeUtils from './themeUtils';
+import type TabListUtils from './tabListUtils';
+import type RecycleBinUtils from './recycleBinUtils';
+import type SyncUtils from './syncUtils';
+import type SyncWebDAVUtils from './syncWebDAVUtils';
+import type StateUtils from './stateUtils';
 
 let _settingsUtils: SettingsUtils;
 let _themeUtils: ThemeUtils;

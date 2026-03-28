@@ -6,6 +6,7 @@ import contextMenusRegister, {
 } from '~/entrypoints/common/contextMenus';
 import commandsRegister from '~/entrypoints/common/commands';
 import tabUtils from '~/entrypoints/common/tabs';
+import nativeGroupSync from './nativeGroupSync';
 import initSettingsStorageListener, {
   initTabListStorageListener,
   themeUtils,
@@ -142,6 +143,8 @@ async function initTabsUpdateListener() {
 export default defineBackground(() => {
   // console.log('Hello background!', { id: browser.runtime.id });
   initTabsUpdateListener();
+  const nativeGroupSyncController = nativeGroupSync.createNativeGroupSyncController();
+  nativeGroupSyncController.register();
   // 初始化tab事件
   initTabEventListener();
   // 初始化 popup 交互

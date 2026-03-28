@@ -14,6 +14,9 @@ export interface GroupItem {
   tabList: TabItem[];
   isLocked?: boolean;
   isStarred?: boolean;
+  linkedBrowserGroupId?: number;
+  linkedBrowserWindowId?: number;
+  linkedBrowserSync?: boolean;
 }
 // 分类信息
 export interface TagItem {

@@ -16,16 +16,15 @@ import dayjs from 'dayjs';
 import { getCustomLocaleMessages } from '~/entrypoints/common/locale';
 import type { DragData } from '~/entrypoints/common/components/DndComponent';
 import { ENUM_SETTINGS_PROPS, UNNAMED_TAG, UNNAMED_GROUP } from '../constants';
+import { isGroupSupported } from '../utils/support';
 import {
-  isGroupSupported,
   getRandomId,
   pick,
   omit,
   newCreateTime,
   getUniqueList,
   getMergedList,
-} from '../utils';
-import { openNewTab } from '../tabs';
+} from '../utils/common';
 import Store from './instanceStore';
 
 const {
@@ -399,6 +398,130 @@ export default class TabListUtils {
     await this.setTagList(tagList);
   }
   // 复制标签组
+  async bindBrowserGroupToStoredGroup({
+    groupId,
+    linkedBrowserGroupId,
+    linkedBrowserWindowId,
+  }: {
+    groupId: string;
+    linkedBrowserGroupId: number;
+    linkedBrowserWindowId: number;
+  }) {
+    const tagList = await this.getTagList();
+    let targetGroup: GroupItem | undefined;
+
+    for (const tag of tagList) {
+      for (const group of tag.groupList) {
+        if (group.linkedBrowserGroupId === linkedBrowserGroupId) {
+          delete group.linkedBrowserGroupId;
+          delete group.linkedBrowserWindowId;
+          delete group.linkedBrowserSync;
+        }
+        if (group.groupId === groupId) {
+          targetGroup = group;
+        }
+      }
+    }
+
+    if (!targetGroup) return;
+
+    targetGroup.linkedBrowserGroupId = linkedBrowserGroupId;
+    targetGroup.linkedBrowserWindowId = linkedBrowserWindowId;
+    targetGroup.linkedBrowserSync = true;
+
+    await this.setTagList(tagList);
+  }
+  async clearBrowserGroupBinding(groupId: Key) {
+    const tagList = await this.getTagList();
+
+    for (const tag of tagList) {
+      for (const group of tag.groupList) {
+        if (group.groupId !== groupId) continue;
+        delete group.linkedBrowserGroupId;
+        delete group.linkedBrowserWindowId;
+        delete group.linkedBrowserSync;
+      }
+    }
+
+    await this.setTagList(tagList);
+  }
+  async getLinkedBrowserGroupsByWindowId(windowId: number) {
+    const tagList = await this.getTagList();
+    const result: Array<{
+      tagId: string;
+      groupId: string;
+      linkedBrowserGroupId: number;
+    }> = [];
+
+    for (const tag of tagList) {
+      for (const group of tag.groupList) {
+        if (
+          group.linkedBrowserSync &&
+          group.linkedBrowserWindowId === windowId &&
+          group.linkedBrowserGroupId != undefined
+        ) {
+          result.push({
+            tagId: tag.tagId,
+            groupId: group.groupId,
+            linkedBrowserGroupId: group.linkedBrowserGroupId,
+          });
+        }
+      }
+    }
+
+    return result;
+  }
+  async syncLinkedBrowserGroupsByWindowId(windowId: number) {
+    const linkedGroups = await this.getLinkedBrowserGroupsByWindowId(windowId);
+    for (const group of linkedGroups) {
+      await this.syncStoredGroupFromBrowserGroup(group.linkedBrowserGroupId);
+    }
+  }
+  async syncStoredGroupFromBrowserGroup(linkedBrowserGroupId: number) {
+    const tagList = await this.getTagList();
+    let targetGroup: GroupItem | undefined;
+
+    for (const tag of tagList) {
+      for (const group of tag.groupList) {
+        if (group.linkedBrowserGroupId === linkedBrowserGroupId) {
+          targetGroup = group;
+          break;
+        }
+      }
+      if (targetGroup) break;
+    }
+
+    if (!targetGroup) return;
+
+    const clearBinding = () => {
+      delete targetGroup.linkedBrowserGroupId;
+      delete targetGroup.linkedBrowserWindowId;
+      delete targetGroup.linkedBrowserSync;
+    };
+
+    try {
+      const browserGroup = await browser.tabGroups!.get(linkedBrowserGroupId);
+      const browserTabs = await browser.tabs.query(
+        targetGroup.linkedBrowserWindowId != undefined
+          ? { windowId: targetGroup.linkedBrowserWindowId }
+          : {},
+      );
+      const groupedTabs = browserTabs.filter(tab => tab.groupId === linkedBrowserGroupId);
+
+      if (!groupedTabs.length) {
+        clearBinding();
+        await this.setTagList(tagList);
+        return;
+      }
+
+      targetGroup.groupName = browserGroup?.title || targetGroup.groupName;
+      targetGroup.tabList = groupedTabs.map(tab => this.transformTabItem(tab));
+      await this.setTagList(tagList);
+    } catch (error) {
+      clearBinding();
+      await this.setTagList(tagList);
+    }
+  }
   async cloneGroup(groupId: string) {
     const settings = await Store.settingsUtils.getSettings();
     const language = settings[LANGUAGE];
@@ -994,6 +1117,7 @@ export default class TabListUtils {
         if (!_tabList.length) continue;
         if (!_isGroupSupported) {
           for (let tab of _tabList) {
+            const { openNewTab } = await import('../tabs');
             openNewTab(tab.url);
           }
           continue;
@@ -1010,6 +1134,7 @@ export default class TabListUtils {
           browser.tabGroups?.update(bsGroupId, { title: item.groupName });
         });
       } else {
+        const { openNewTab } = await import('../tabs');
         openNewTab(item.url);
       }
     }
