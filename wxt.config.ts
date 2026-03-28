@@ -14,7 +14,7 @@ export default defineConfig({
     plugins: [svgr({ svgrOptions: { icon: true } })],
   }),
   manifest: {
-    name: 'Nice Tab Manager',
+    name: 'NiceTab Sync Fork',
     permissions: [
       'storage',
       'tabs',
@@ -27,7 +27,7 @@ export default defineConfig({
     optional_permissions: [
       "tabGroups"
     ],
-    homepage_url: 'https://github.com/web-dahuyou/NiceTab',
+    homepage_url: 'https://github.com/MoTao233/NiceTab',
     host_permissions: ['<all_urls>'],
     default_locale: 'zh_CN',
     content_security_policy: isFirefox
@@ -91,7 +91,7 @@ export default defineConfig({
       'action:hibernateTabs': {
         description: '__MSG_action_hibernateTabs__',
       },
-      // 激活option面板
+      // 婵€娲籵ption闈㈡澘
       _execute_action: {
         suggested_key: {
           default: 'Alt+Shift+P',
