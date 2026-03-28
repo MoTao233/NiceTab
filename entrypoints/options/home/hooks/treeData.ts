@@ -3,6 +3,7 @@ import type { TreeProps } from 'antd';
 import type { TagItem, GroupItem, TabItem, CountInfo } from '~/entrypoints/types';
 import { settingsUtils, stateUtils, tabListUtils } from '~/entrypoints/common/storage';
 import { openNewTab, openNewGroup } from '~/entrypoints/common/tabs';
+import restoreStoredTabGroupUtils from '~/entrypoints/common/restoreStoredTabGroup';
 import { ENUM_SETTINGS_PROPS, UNNAMED_GROUP } from '~/entrypoints/common/constants';
 import { getRandomId } from '~/entrypoints/common/utils';
 import useUrlParams from '~/entrypoints/common/hooks/urlParams';
@@ -271,20 +272,29 @@ export function useTreeData() {
       const { groupName, tabList = [], isLocked } = tabGroup?.originData || {};
       const discard = settings?.[DISCARD_WHEN_OPEN_TABS];
 
-      const asGroup =
+      const asGroup = Boolean(
         (groupName === UNNAMED_GROUP && settings?.[UNNAMED_GROUP_RESTORE_AS_GROUP]) ||
-        (groupName !== UNNAMED_GROUP && settings?.[NAMED_GROUP_RESTORE_AS_GROUP]);
-
-      openNewGroup(
-        groupName,
-        tabList.map(tab => tab.url),
-        { discard, asGroup },
+          (groupName !== UNNAMED_GROUP && settings?.[NAMED_GROUP_RESTORE_AS_GROUP]),
       );
 
       if (settings?.[DELETE_AFTER_RESTORE] && !isLocked) {
+        await openNewGroup(
+          groupName,
+          tabList.map(tab => tab.url),
+          { discard, asGroup },
+        );
         await tabListUtils.removeTabGroup(tag.key, tabGroup.key);
         refreshTreeData();
+        return;
       }
+
+      await restoreStoredTabGroupUtils.restoreStoredTabGroup({
+        storedGroupId: String(tabGroup.key),
+        groupName,
+        urls: tabList.map(tab => tab.url),
+        discard,
+        asGroup,
+      });
     },
     [treeData],
   );
@@ -301,9 +311,10 @@ export function useTreeData() {
         const settings = await settingsUtils.getSettings();
         const discard = settings?.[DISCARD_WHEN_OPEN_TABS];
 
-        const asGroup =
+        const asGroup = Boolean(
           (groupName === UNNAMED_GROUP && settings?.[UNNAMED_GROUP_RESTORE_AS_GROUP]) ||
-          (groupName !== UNNAMED_GROUP && settings?.[NAMED_GROUP_RESTORE_AS_GROUP]);
+            (groupName !== UNNAMED_GROUP && settings?.[NAMED_GROUP_RESTORE_AS_GROUP]),
+        );
 
         openNewGroup(
           groupName,

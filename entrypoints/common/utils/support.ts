@@ -1,12 +1,16 @@
 import { satisfies } from 'compare-versions';
 
+const env = ((import.meta as ImportMeta & { env?: Record<string, unknown> }).env ||
+  {}) as Record<string, unknown>;
+const isFirefoxEnv = !!env.FIREFOX;
+
 // 浏览器是否支持 group Api
 export const isGroupSupported = () =>
   typeof browser.tabs.group === 'function' && !!browser.tabGroups;
 
 // firefox 浏览器是否支持 group Api
 export const isFirefoxTabGroupSupported = async () => {
-  if (!import.meta.env.FIREFOX) return false;
+  if (!isFirefoxEnv) return false;
 
   const { version } = await browser.runtime.getBrowserInfo();
   if (satisfies(version, '<139')) return false;

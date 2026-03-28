@@ -27,7 +27,11 @@ import type {
 } from '~/entrypoints/types';
 export * from './envVars';
 
-export const MANIFEST_VERSION = import.meta.env.MANIFEST_VERSION;
+const env = ((import.meta as ImportMeta & { env?: Record<string, unknown> }).env ||
+  {}) as Record<string, unknown>;
+const isFirefoxEnv = !!env.FIREFOX;
+
+export const MANIFEST_VERSION = env.MANIFEST_VERSION;
 export const GITHUB_URL = 'https://github.com/web-dahuyou/NiceTab';
 
 // 主题列表（供切换选择）
@@ -240,7 +244,7 @@ export const DEFAULT_EXCLUDE_DOMAINS = [
   'about:blank',
   'chrome://newtab/',
   'edge://newtab/',
-  import.meta.env.FIREFOX ? '^about:.+$' : 'about:newtab',
+  isFirefoxEnv ? '^about:.+$' : 'about:newtab',
 ];
 
 // 同步方式枚举
